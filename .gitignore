@@ -1,4 +1,20 @@
+# Python cache
 __pycache__/
 *.pyc
-reports/
+
+# Virtual environments (dacă vei folosi în viitor)
+venv/
+.env/
+
+# IDE / Editor
 .vscode/
+
+# Logs
+*.log
+
+# Ignore scan results, but keep folder
+reports/*.csv
+reports/*.txt
+
+# Keep the reports folder structure
+!reports/.gitkeep
