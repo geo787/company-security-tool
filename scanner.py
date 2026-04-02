@@ -73,12 +73,14 @@ def save_report(target_ip, open_ports):
         file.write(f"Scan time: {now}\n\n")
 
         if open_ports:
+
             file.write("Open ports:\n")
 
             for port in open_ports:
                 file.write(f"Port {port}\n")
 
         else:
+
             file.write("No open ports found.\n")
 
     print(f"\nReport saved as: {filename}")
