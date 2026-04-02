@@ -1,0 +1,7 @@
+=== Port Scan Report ===
+Target: 45.33.32.156
+Scan time: 2026-04-02_16-26-49
+
+Open ports:
+Port 22
+Port 80

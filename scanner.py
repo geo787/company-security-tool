@@ -1,8 +1,12 @@
 import socket
-import argparse
-import os
+import threading
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
+
+# lista globală pentru porturi deschise
+open_ports = []
+
+# lock pentru thread safety
+lock = threading.Lock()
 
 
 def check_website(host):
@@ -11,252 +15,70 @@ def check_website(host):
         print(f"[+] {host} resolves to {ip}")
         return ip
 
-    except socket.error:
-        print(f"[-] Could not resolve {host}")
+    except socket.gaierror:
+        print("[-] Could not resolve host.")
         return None
 
 
-def scan_port(ip, port):
-
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(0.5)
-
-    result = s.connect_ex((ip, port))
-
-    if result == 0:
-        status = "OPEN"
-    else:
-        status = "CLOSED"
-
-    s.close()
-
-    return (port, status)
-
-
-def scan_ports(ip, start_port, end_port):
-
-    print(f"\nScanning ports {start_port}-{end_port} on {ip}...\n")
-
-    ports = range(start_port, end_port + 1)
-
-    report = []
-
-    with ThreadPoolExecutor(max_workers=100) as executor:
-
-        results = executor.map(
-            lambda port: scan_port(ip, port),
-            ports
-        )
-
-        for port, status in results:
-
-            print(f"{status} Port {port}")
-
-            report.append(
-                (port, status)
-            )
-
-    save_report(ip, report)
-
-
-def save_report(ip, report):
-
-    now = datetime.now()
-
-    folder = "reports"
-
-    # creează folderul dacă nu există
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-
-    filename = f"{folder}/scan_report_{ip}.csv"
-
-    with open(filename, "w") as file:
-
-        file.write("Port,Status\n")
-
-        for port, status in report:
-
-            file.write(
-                f"{port},{status}\n"
-            )
-
-    print(
-        f"\nReport saved as: {filename}"
-    )
-
-
-def main():
-
-    parser = argparse.ArgumentParser(
-        description="Network Security Scanner"
-    )
-
-    parser.add_argument(
-        "target",
-        help="Target domain or IP"
-    )
-
-    parser.add_argument(
-        "--start",
-        type=int,
-        default=1,
-        help="Start port"
-    )
-
-    parser.add_argument(
-        "--end",
-        type=int,
-        default=1024,
-        help="End port"
-    )
-
-    args = parser.parse_args()
-
-    ip = check_website(
-        args.target
-    )
-
-    if ip:
-
-        scan_ports(
-            ip,
-            args.start,
-            args.end
-        )
-
-
-if __name__ == "__main__":
-
-    main()
-import socket
-import argparse
-import os
-from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
-
-
-def check_website(host):
+def scan_port(target_ip, port):
     try:
-        ip = socket.gethostbyname(host)
-        print(f"[+] {host} resolves to {ip}")
-        return ip
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        socket.setdefaulttimeout(1)
 
-    except socket.error:
-        print(f"[-] Could not resolve {host}")
-        return None
+        result = sock.connect_ex((target_ip, port))
 
+        if result == 0:
+            with lock:
+                print(f"[OPEN] Port {port}")
+                open_ports.append(port)
 
-def scan_port(ip, port):
+        sock.close()
 
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(0.5)
-
-    result = s.connect_ex((ip, port))
-
-    if result == 0:
-        status = "OPEN"
-    else:
-        status = "CLOSED"
-
-    s.close()
-
-    return (port, status)
+    except Exception:
+        pass
 
 
-def scan_ports(ip, start_port, end_port):
+def scan_ports(target_ip, start_port, end_port):
+    threads = []
 
-    print(f"\nScanning ports {start_port}-{end_port} on {ip}...\n")
+    # reset list
+    global open_ports
+    open_ports = []
 
-    ports = range(start_port, end_port + 1)
+    print(f"Scanning ports {start_port}-{end_port} on {target_ip}...\n")
 
-    report = []
-
-    with ThreadPoolExecutor(max_workers=100) as executor:
-
-        results = executor.map(
-            lambda port: scan_port(ip, port),
-            ports
+    for port in range(start_port, end_port + 1):
+        thread = threading.Thread(
+            target=scan_port,
+            args=(target_ip, port)
         )
 
-        for port, status in results:
+        threads.append(thread)
+        thread.start()
 
-            print(f"{status} Port {port}")
+    for thread in threads:
+        thread.join()
 
-            report.append(
-                (port, status)
-            )
-
-    save_report(ip, report)
+    return open_ports
 
 
-def save_report(ip, report):
+def save_report(target_ip, open_ports):
+    now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-    now = datetime.now()
-
-    folder = "reports"
-
-    # creează folderul dacă nu există
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-
-    filename = f"{folder}/scan_report_{ip}.csv"
+    filename = f"scan_report_{target_ip}_{now}.txt"
 
     with open(filename, "w") as file:
+        file.write("=== Port Scan Report ===\n")
+        file.write(f"Target: {target_ip}\n")
+        file.write(f"Scan time: {now}\n\n")
 
-        file.write("Port,Status\n")
+        if open_ports:
+            file.write("Open ports:\n")
 
-        for port, status in report:
+            for port in open_ports:
+                file.write(f"Port {port}\n")
 
-            file.write(
-                f"{port},{status}\n"
-            )
+        else:
+            file.write("No open ports found.\n")
 
-    print(
-        f"\nReport saved as: {filename}"
-    )
-
-
-def main():
-
-    parser = argparse.ArgumentParser(
-        description="Network Security Scanner"
-    )
-
-    parser.add_argument(
-        "target",
-        help="Target domain or IP"
-    )
-
-    parser.add_argument(
-        "--start",
-        type=int,
-        default=1,
-        help="Start port"
-    )
-
-    parser.add_argument(
-        "--end",
-        type=int,
-        default=1024,
-        help="End port"
-    )
-
-    args = parser.parse_args()
-
-    ip = check_website(
-        args.target
-    )
-
-    if ip:
-
-        scan_ports(
-            ip,
-            args.start,
-            args.end
-        )
-
-
-if __name__ == "__main__":
-
-    main()
+    print(f"\nReport saved as: {filename}")
