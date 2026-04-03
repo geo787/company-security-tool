@@ -5,7 +5,8 @@ Built for educational use, cybersecurity practice, and basic network reconnaissa
 
 ## 🚀 Overview
 
-**Company Security Port Scanner** is a command-line tool that helps identify open ports on a target system within a specified range.
+**Company Security Port Scanner** 
+Is a command-line tool that helps identify open ports on a target system within a specified range.
 It resolves domain names, performs TCP connection checks, and exports scan results into readable report files.
 
 This project demonstrates core networking and security concepts such as:
@@ -48,7 +49,7 @@ README.md
 .gitignore
 
 
-## ▶️ How to Run
+▶️ How to Run
 
 ### 1. Clone the repository
 
