@@ -1,3 +1,5 @@
+![CI](https://github.com/geo787/security-scanner/actions/workflows/tests.yml/badge.svg)
+
 # 🔐 Company Security Port Scanner
 
 A practical Python-based security tool designed to scan TCP ports, identify exposed services, and generate structured security reports.
