@@ -6,6 +6,12 @@ from datetime import datetime
 
 import scanner
 
+# Fix Windows Unicode console encoding
+if sys.platform == "win32":
+    os.environ["PYTHONIOENCODING"] = "utf-8"
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+
 
 # ─── Logging setup ───────────────────────────────────────────────────────────
 
