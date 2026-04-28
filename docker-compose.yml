@@ -1,0 +1,14 @@
+version: '3.9'
+
+services:
+  security-scanner:
+    build: .
+    container_name: security-scanner
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./reports:/app/reports
+      - ./logs:/app/logs
+    environment:
+      PYTHONUNBUFFERED: 1
+    restart: unless-stopped

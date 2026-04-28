@@ -16,7 +16,18 @@ if sys.platform == "win32":
 # ─── Logging setup ───────────────────────────────────────────────────────────
 
 def setup_logging(verbose: bool = False) -> logging.Logger:
-    """Configure console + rotating file logging."""
+    """
+    Configure logging to console and rotating file handler.
+
+    Sets up dual output (stdout and file) with rotating file handler
+    (5 MB max per file, keeps 3 backups).
+
+    Args:
+        verbose: If True, sets level to DEBUG, else INFO (default: False).
+
+    Returns:
+        Configured logger instance.
+    """
     from logging.handlers import RotatingFileHandler
 
     os.makedirs("logs", exist_ok=True)
@@ -52,6 +63,14 @@ def setup_logging(verbose: bool = False) -> logging.Logger:
 # ─── Argument parser ─────────────────────────────────────────────────────────
 
 def build_parser() -> argparse.ArgumentParser:
+    """
+    Build command-line argument parser.
+
+    Defines all CLI options with help text and examples.
+
+    Returns:
+        Configured ArgumentParser instance.
+    """
     parser = argparse.ArgumentParser(
         prog="security-scanner",
         description="Company Security Port Scanner v2.0 — by Roberta Barba",
@@ -123,6 +142,19 @@ GitHub: https://github.com/geo787/company-security-tool
 # ─── Input validation ────────────────────────────────────────────────────────
 
 def validate_args(args: argparse.Namespace, logger: logging.Logger) -> bool:
+    """
+    Validate command-line arguments.
+
+    Checks port ranges, thread count, and timeout values, logging errors
+    for any invalid inputs.
+
+    Args:
+        args: Parsed command-line arguments.
+        logger: Logger instance.
+
+    Returns:
+        True if all args are valid, False if any validation fails.
+    """
     try:
         start, end = scanner.parse_ports(args.ports)
     except (ValueError, IndexError):
@@ -152,6 +184,15 @@ def validate_args(args: argparse.Namespace, logger: logging.Logger) -> bool:
 # ─── Main ────────────────────────────────────────────────────────────────────
 
 def main() -> int:
+    """
+    Main CLI entry point.
+
+    Orchestrates argument parsing, validation, DNS resolution, port scanning,
+    reporting, and exit code handling.
+
+    Returns:
+        Exit code: 0 if successful with no risky ports, 1 if risky ports found or errors.
+    """
     parser = build_parser()
     args = parser.parse_args()
 

@@ -53,7 +53,15 @@ logger = logging.getLogger("scanner")
 # ─── DNS resolution ──────────────────────────────────────────────────────────
 
 def check_website(host: str) -> Optional[str]:
-    """Resolve hostname to IP. Returns None on failure."""
+    """
+    Resolve hostname to IP address.
+
+    Args:
+        host: Hostname or IP address to resolve.
+
+    Returns:
+        IP address string, or None if resolution fails.
+    """
     if not host or not host.strip():
         logger.error("No target specified.")
         return None
@@ -70,8 +78,17 @@ def check_website(host: str) -> Optional[str]:
 
 def grab_banner(ip: str, port: int, timeout: float = 1.5) -> Optional[str]:
     """
-    Attempt to read the service banner for version detection.
-    Returns up to 200 chars of banner text, or None.
+    Grab service banner from port for version detection.
+
+    Connects to the port and reads the banner, with special handling for HTTP ports.
+
+    Args:
+        ip: Target IP address.
+        port: Target port number.
+        timeout: Connection timeout in seconds (default: 1.5).
+
+    Returns:
+        First line of banner (max 200 chars), or None on error.
     """
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -85,7 +102,7 @@ def grab_banner(ip: str, port: int, timeout: float = 1.5) -> Optional[str]:
         banner = sock.recv(1024).decode("utf-8", errors="ignore").strip()
         sock.close()
 
-        # Clean up: keep only first line (most informative)
+        # Keep only first line (most informative)
         first_line = banner.splitlines()[0] if banner else ""
         return first_line[:200] if first_line else None
 
@@ -102,7 +119,18 @@ def scan_single_port(
     grab_banners: bool = True
 ) -> Optional[dict]:
     """
-    Check one port. Returns a result dict if open, None if closed.
+    Test if a single port is open on target host.
+
+    Attempts to connect to the port and returns result dict if open.
+
+    Args:
+        ip: Target IP address.
+        port: Port number to scan.
+        timeout: Connection timeout in seconds (default: 0.5).
+        grab_banners: Whether to attempt banner grabbing (default: True).
+
+    Returns:
+        Dict with keys {port, service, banner, risk, status} if port open, else None.
     """
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -145,8 +173,21 @@ def scan_ports(
     grab_banners: bool = True
 ) -> list[dict]:
     """
-    Scan a port range using a thread pool.
-    Returns sorted list of open port dicts.
+    Scan port range using ThreadPoolExecutor for concurrency.
+
+    Scans all ports between start_port and end_port (inclusive) and returns
+    a sorted list of open ports with their metadata.
+
+    Args:
+        ip: Target IP address.
+        start_port: Starting port number.
+        end_port: Ending port number (inclusive).
+        max_threads: Max concurrent threads (default: 300).
+        timeout: Connection timeout per port in seconds (default: 0.5).
+        grab_banners: Whether to grab service banners (default: True).
+
+    Returns:
+        List of dicts {port, service, banner, risk, status}, sorted by port number.
     """
     ports = range(start_port, end_port + 1)
     total = len(ports)
@@ -178,10 +219,21 @@ def scan_ports(
 
 def parse_ports(port_str: str) -> tuple[int, int]:
     """
-    Parse port argument.
-      "1-1024"       → (1, 1024)
-      "80,443,8080"  → (80, 8080)   scans full range between min and max
-      "443"          → (443, 443)
+    Parse port specification string into start and end port numbers.
+
+    Supports three formats:
+      - "1-1024"       → (1, 1024)
+      - "80,443,8080"  → (80, 8080) [scans full range between min and max]
+      - "443"          → (443, 443)
+
+    Args:
+        port_str: Port specification string.
+
+    Returns:
+        Tuple of (start_port, end_port).
+
+    Raises:
+        ValueError: If port_str cannot be parsed or contains invalid numbers.
     """
     port_str = port_str.strip()
     if "-" in port_str:
@@ -203,8 +255,19 @@ def save_report(
     output_format: str = "txt"
 ) -> str:
     """
-    Save scan results to reports/ in the chosen format.
-    Returns the path of the saved file.
+    Save scan results to reports/ directory in chosen format.
+
+    Generates human-readable reports in TXT, JSON, or CSV format with metadata,
+    open ports, and risky port warnings.
+
+    Args:
+        target: Target hostname/IP (for metadata).
+        ip: Resolved IP address.
+        open_ports: List of open port dicts {port, service, banner, risk, status}.
+        output_format: Output format: "txt", "json", or "csv" (default: "txt").
+
+    Returns:
+        Path to the saved report file.
     """
     os.makedirs("reports", exist_ok=True)
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
